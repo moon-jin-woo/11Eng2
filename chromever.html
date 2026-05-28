@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>단어 암기장</title>
+<style>
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; background-color: #f8f9fa; margin: 0; padding: 20px; overflow: hidden; /* 중앙 정렬 집중을 위해 스크롤 바 숨김 */ }
+
+/* 지문 버튼 고정 영역 */
+.chapter-container { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; max-width: 5000px; width: 100%; position: fixed; top: 50px; background: #f8f9fa; padding: 10px 0; z-index: 10; }
+.chapter-btn { padding: 8px 10px; font-size: 13px; border: none; border-radius: 8px; background: rgba(10, 10, 256, 0.2); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.chapter-btn.active { background: #4dabf7; color: white; }
+
+/* 단어와 뜻 칸을 화면 전체의 정중앙에 배치 */
+.card-container { 
+  width: 100%; 
+  max-width: 400px; 
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* 가로, 세로 완벽한 화면 중앙 정렬 */
+  padding: 0 20px;
+}
+.box { background: white; padding: 30px 20px 20px 20px; margin-bottom: 15px; text-align: center; border-radius: 20px; min-height: 110px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative; }
+.box:last-child { margin-bottom: 0; } /* 마지막 박스 하단 여백 제거 */
+
+/* 번호 표시 스타일 */
+#word-number { position: absolute; top: 10px; left: 15px; font-size: 12px; color: #adb5bd; font-weight: bold; }
+#word { font-size: 24px; font-weight: 600; }
+#meaning { font-size: 20px; font-weight: 500; color: transparent; }
+
+/* 공통 버튼 기본 스타일 */
+button { border: none; cursor: pointer; color: white; font-weight: 600; }
+
+/* 왼쪽 중앙 세로 배치 그룹 */
+.left-btn-group {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+}
+.left-btn-group button {
+  width: 150px;
+  height: 150px;
+  font-size: 14px;
+  border-radius: 0 15px 15px 0;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08);
+  padding: 0 5px;
+}
+
+#shuffleBtn { background-color: #20c997; }
+#orderBtn { background-color: #fcc419; color: #000; }
+#prevBtn { background-color: #4dabf7; }
+
+/* 화면 오른쪽 정중앙에 고정된 세로형 대형 다음 버튼 */
+#nextBtn { 
+  position: fixed; 
+  right: 0; 
+  top: 50%; 
+  transform: translateY(-50%);
+  width: 150px; 
+  height: 460px; /* 왼쪽 3개 버튼 전체 높이와 대칭 */
+  border-radius: 20px 0 0 20px;
+  background-color: #fa5252; 
+  font-size: 20px; 
+  font-weight: bold;
+  box-shadow: -4px 0 15px rgba(250, 82, 82, 0.3);
+  z-index: 999;
+  padding: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- 상단 지문 버튼 영역 -->
+<div class="chapter-container" id="chapterList"></div>
+
+<!-- 화면 정중앙에 배치된 단어 및 뜻 카드 영역 -->
+<div class="card-container">
+  <div class="box" id="word-box">
+    <div id="word-number">1</div>
+    <div id="word">단어를 선택하세요</div>
+  </div>
+  <div class="box" id="meaning">뜻</div>
+</div>
+
+<!-- 왼쪽 중앙 세로 배치 영역 -->
+<div class="left-btn-group">
+  <button id="shuffleBtn" onclick="shuffleWords()">셔플</button>
+  <button id="orderBtn" onclick="setOrder()">순서대로</button>
+  <button id="prevBtn" onclick="prevWord()">이전</button>
+</div>
+
+<!-- 오른쪽 중앙 배치 버튼 -->
+<button id="nextBtn" onclick="nextStep()">다음</button>
+
+</body>
+</html>
+
+<script>
+// 전체 327개 단어 데이터 (지문 11 ~ 112)
+const dataByChapter = {
+"1": [{id:1, word:"a great deal of", meaning:"많은 양의"}, {id:2, word:"as much as", meaning:"~만큼이나"}, {id:3, word:"body language", meaning:"몸짓 언어"}, {id:4, word:"classroom climate", meaning:"교실 분위기"}, {id:5, word:"closely", meaning:"면밀히, 밀접하게"}, {id:6, word:"effort", meaning:"노력"}, {id:7, word:"empowering", meaning:"힘을 북돋아 주는"}, {id:8, word:"encouraging", meaning:"격려가 되는"}, {id:9, word:"estimate", meaning:"추정하다"}, {id:10, word:"greeting", meaning:"인사"}, {id:11, word:"in general", meaning:"일반적으로"}, {id:12, word:"initial", meaning:"처음의, 초기의"}, {id:13, word:"nonverbal", meaning:"비언어적인"}, {id:14, word:"pay attention to", meaning:"~에 주의를 기울이다"}, {id:15, word:"require", meaning:"필요로 하다"}, {id:16, word:"right from the start", meaning:"시작부터 바로"}, {id:17, word:"significant", meaning:"상당한, 중요한"}, {id:18, word:"tuned in to", meaning:"~에 주목하는"}, {id:19, word:"welcoming", meaning:"환영하는"}],
+"2": [{id:20, word:"about to", meaning:"막 ~하려고 하다"}, {id:21, word:"audience", meaning:"독자, 청중"}, {id:22, word:"business mind", meaning:"사업가적 사고방식"}, {id:23, word:"entertaining", meaning:"재미있는"}, {id:24, word:"give away", meaning:"거저 주다"}, {id:25, word:"instead", meaning:"대신에"}, {id:26, word:"interested", meaning:"흥미를 느끼는"}, {id:27, word:"interested in", meaning:"~에 관심이 있는"}, {id:28, word:"keep coming back", meaning:"계속 다시 찾아오다"}, {id:29, word:"latest", meaning:"최신의"}, {id:30, word:"launch", meaning:"시작하다"}, {id:31, word:"on the topic", meaning:"주제에 맞춰"}, {id:32, word:"promote", meaning:"홍보하다"}, {id:33, word:"shamelessly", meaning:"뻔뻔하게"}, {id:34, word:"strictly", meaning:"엄격하게"}, {id:35, word:"successful", meaning:"성공적인"}, {id:36, word:"unfortunately", meaning:"불행하게도"}, {id:37, word:"useful", meaning:"유용한"}],
+"3": [{id:38, word:"advance", meaning:"나아가다"}, {id:39, word:"as a result", meaning:"결과적으로"}, {id:40, word:"as if", meaning:"~인 것처럼"}, {id:41, word:"check all the boxes", meaning:"필요한 모든 것을 하다"}, {id:42, word:"college", meaning:"대학"}, {id:43, word:"commit to", meaning:"~에 전념하다"}, {id:44, word:"describe", meaning:"묘사하다"}, {id:45, word:"devote", meaning:"헌신하다"}, {id:46, word:"habit", meaning:"습관"}, {id:47, word:"in truth", meaning:"사실은"}, {id:48, word:"instead", meaning:"대신에"}, {id:49, word:"journey", meaning:"여정"}, {id:50, word:"lack", meaning:"~이 부족하다"}, {id:51, word:"lay out", meaning:"마련하다"}, {id:52, word:"likely to", meaning:"~할 것 같다"}, {id:53, word:"manage to", meaning:"용케 ~하다"}, {id:54, word:"move forward", meaning:"앞으로 나아가다"}, {id:55, word:"otherwise", meaning:"그렇지 않으면"}, {id:56, word:"progress", meaning:"진전하다"}, {id:57, word:"responsibility", meaning:"책임"}, {id:58, word:"road map", meaning:"로드맵"}, {id:59, word:"take responsibility for", meaning:"~에 책임을 지다"}, {id:60, word:"thought", meaning:"생각"}, {id:61, word:"unfortunately", meaning:"불행하게도"}, {id:62, word:"voluntary", meaning:"자발적인"}, {id:63, word:"well-run", meaning:"잘 운영되는"}],
+"4": [{id:64, word:"accessible", meaning:"접근 가능한"}, {id:65, word:"actually", meaning:"실제로"}, {id:66, word:"appropriate", meaning:"적절한"}, {id:67, word:"buried", meaning:"묻힌"}, {id:68, word:"check in", meaning:"체크인하다"}, {id:69, word:"check-in", meaning:"체크인"}, {id:70, word:"clerk", meaning:"직원"}, {id:71, word:"delightful", meaning:"즐거운"}, {id:72, word:"encourage", meaning:"장려하다"}, {id:73, word:"end up", meaning:"결국 ~하게 되다"}, {id:74, word:"ensure", meaning:"보장하다"}, {id:75, word:"far too often", meaning:"너무나 자주"}, {id:76, word:"focus on", meaning:"~에 초점을 맞추다"}, {id:77, word:"frequently", meaning:"자주"}, {id:78, word:"front desk", meaning:"프런트 데스크"}, {id:79, word:"goal", meaning:"목표"}, {id:80, word:"indication", meaning:"표시, 징후"}, {id:81, word:"loyalty", meaning:"충성도"}, {id:82, word:"only for", meaning:"결국 ~하게 되다"}, {id:83, word:"opportunity", meaning:"기회"}, {id:84, word:"prime", meaning:"주요한, 최고의"}, {id:85, word:"recognize", meaning:"알아보다"}, {id:86, word:"record", meaning:"기록"}, {id:87, word:"store", meaning:"저장하다"}, {id:88, word:"usage", meaning:"사용"}, {id:89, word:"utilize", meaning:"활용하다"}, {id:90, word:"valuable", meaning:"가치 있는"}, {id:91, word:"whether A or B", meaning:"A이든 B이든"}, {id:92, word:"worthless", meaning:"가치 없는"}],
+"5": [{id:93, word:"all doom and gloom", meaning:"온통 암울한 이야기"}, {id:94, word:"article", meaning:"기사"}, {id:95, word:"as a result", meaning:"결과적으로"}, {id:96, word:"cancer", meaning:"암"}, {id:97, word:"climate change", meaning:"기후 변화"}, {id:98, word:"collapse", meaning:"붕괴"}, {id:99, word:"come to", meaning:"~에 관해 말하자면"}, {id:100, word:"depressed", meaning:"우울한"}, {id:101, word:"disease", meaning:"질병"}, {id:102, word:"ecological", meaning:"생태학적인"}, {id:103, word:"exact", meaning:"정확한"}, {id:104, word:"frightening", meaning:"무섭게 하는, 겁주는"}, {id:105, word:"get screened", meaning:"검진을 받다"}, {id:106, word:"health-related", meaning:"건강 관련"}, {id:107, word:"illness", meaning:"질병"}, {id:108, word:"increasing", meaning:"증가하는"}, {id:109, word:"inner", meaning:"내적인"}, {id:110, word:"intend", meaning:"의도하다"}, {id:111, word:"issue", meaning:"문제, 쟁점"}, {id:112, word:"less interested in", meaning:"~에 덜 흥미를 느끼는"}, {id:113, word:"less likely to", meaning:"~할 가능성이 더 적은"}, {id:114, word:"opposite", meaning:"정반대"}, {id:115, word:"personal", meaning:"개인적인"}, {id:116, word:"pessimistic", meaning:"비관적인"}, {id:117, word:"present", meaning:"제시하다, 보여주다"}, {id:118, word:"protect", meaning:"보호하다"}, {id:119, word:"public health", meaning:"공공 보건"}, {id:120, word:"rate", meaning:"비율"}, {id:121, word:"research", meaning:"연구"}, {id:122, word:"result in", meaning:"~을 야기하다, 초래하다"}, {id:123, word:"rob A of B", meaning:"A에게서 B를 빼앗다"}, {id:124, word:"saying", meaning:"속담, 격언"}, {id:125, word:"sense of control", meaning:"통제감"}, {id:126, word:"suggest", meaning:"시사하다, 암시하다"}, {id:127, word:"take steps", meaning:"조치를 취하다"}, {id:128, word:"terrified", meaning:"겁에 질린"}, {id:129, word:"threatening", meaning:"위협적인"}, {id:130, word:"warn", meaning:"경고하다"}],
+"6": [{id:131, word:"author", meaning:"작가"}, {id:132, word:"blueprint", meaning:"청사진"}, {id:133, word:"boredom", meaning:"지루함"}, {id:134, word:"character", meaning:"등장인물"}, {id:135, word:"conflict", meaning:"갈등"}, {id:136, word:"crime fiction", meaning:"범죄 소설"}, {id:137, word:"crucial", meaning:"결정적인, 매우 중요한"}, {id:138, word:"demand", meaning:"요구하다"}, {id:139, word:"detail", meaning:"세부 사항"}, {id:140, word:"discover", meaning:"발견하다"}, {id:141, word:"drive ... to boredom", meaning:"~를 지루하게 만들다"}, {id:142, word:"earn", meaning:"얻다, 획득하다"}, {id:143, word:"experience", meaning:"경험"}, {id:144, word:"fiction", meaning:"소설(장르)"}, {id:145, word:"get it right", meaning:"제대로 하다, 정획히 하다"}, {id:146, word:"location", meaning:"장소"}, {id:147, word:"matter", meaning:"중요하다"}, {id:148, word:"novel", meaning:"소설"}, {id:149, word:"organize", meaning:"준비하다"}, {id:150, word:"pack", meaning:"채워 넣다"}, {id:151, word:"particular", meaning:"특정한"}, {id:152, word:"permission", meaning:"허락, 허가"}, {id:153, word:"police station", meaning:"경찰서"}, {id:154, word:"polite", meaning:"정중한"}, {id:155, word:"record", meaning:"기록하다"}, {id:156, word:"research", meaning:"조사"}, {id:157, word:"reveal", meaning:"드러내다"}, {id:158, word:"scientific", meaning:"과학적인"}, {id:159, word:"tension", meaning:"긴장감"}, {id:160, word:"thriller", meaning:"스릴러"}, {id:161, word:"timetable", meaning:"시간표"}],
+"7": [{id:162, word:"according to", meaning:"~에 따르면"}, {id:163, word:"activate", meaning:"활성화하다"}, {id:164, word:"actually", meaning:"실제로"}, {id:165, word:"bottom line", meaning:"결론은, 요점은"}, {id:166, word:"cello", meaning:"첼로"}, {id:167, word:"circuit", meaning:"회로"}, {id:168, word:"confidence", meaning:"자신감"}, {id:169, word:"confident", meaning:"자신감 있는"}, {id:170, word:"develop into", meaning:"~으로 발전하다/변하다"}, {id:171, word:"encouraging", meaning:"고무적인, 격려가 되는"}, {id:172, word:"evoke", meaning:"불러일으키다"}, {id:173, word:"experience", meaning:"경험"}, {id:174, word:"fire", meaning:"(신경이) 활동하다, 발화하다"}, {id:175, word:"fundamentally", meaning:"근본적으로"}, {id:176, word:"get better at", meaning:"~을 더 잘하게 되다"}, {id:177, word:"grateful", meaning:"감사하는"}, {id:178, word:"gratitude", meaning:"감사(마음)"}, {id:179, word:"in the words of", meaning:"~의 말에 따르면"}, {id:180, word:"intentionally", meaning:"의도적으로"}, {id:181, word:"lasting", meaning:"지속적인"}, {id:182, word:"neural", meaning:"신경의"}, {id:183, word:"neuron", meaning:"뉴런, 신경 세포"}, {id:184, word:"neuroscientist", meaning:"신경과학자"}, {id:185, word:"no different than", meaning:"~와 다를 바 없는"}, {id:186, word:"pathway", meaning:"경로"}, {id:187, word:"premise", meaning:"전제"}, {id:188, word:"regular", meaning:"규칙적인"}, {id:189, word:"relaxation", meaning:"휴식, 편안함"}, {id:190, word:"relaxed", meaning:"편안한"}, {id:191, word:"repeat", meaning:"반복하다"}, {id:192, word:"repeated", meaning:"반복되는"}, {id:193, word:"shape", meaning:"형성하다, 만들다"}, {id:194, word:"specific", meaning:"특정한"}, {id:195, word:"train", meaning:"훈련시키다"}, {id:196, word:"used to", meaning:"~하곤 했다"}, {id:197, word:"well-being", meaning:"행복, 안녕"}, {id:198, word:"wire", meaning:"(신경이) 연결되다"}],
+"8": [{id:199, word:"add up", meaning:"합산되다, 쌓이다"}, {id:200, word:"alter", meaning:"바꾸다, 변경하다"}, {id:201, word:"barely", meaning:"거의 ~않게"}, {id:202, word:"consequence", meaning:"결과"}, {id:203, word:"dinosaur", meaning:"공룡"}, {id:204, word:"duration", meaning:"지속 시간"}, {id:205, word:"equator", meaning:"적도"}, {id:206, word:"ever so slightly", meaning:"아주 약간"}, {id:207, word:"glacier", meaning:"빙하"}, {id:208, word:"gravity", meaning:"중력"}, {id:209, word:"in turn", meaning:"결과적으로, 결국"}, {id:210, word:"jump", meaning:"상승"}, {id:211, word:"last", meaning:"지속되다"}, {id:212, word:"melting", meaning:"녹는"}, {id:213, word:"noticeable", meaning:"눈에 띄는"}, {id:214, word:"remarkable", meaning:"주목할 만한, 놀라운"}, {id:215, word:"rising", meaning:"상승하는"}, {id:216, word:"rotation", meaning:"자전, 회전"}, {id:217, word:"similarly", meaning:"비슷하게"}, {id:218, word:"slowdown", meaning:"둔화, 감속"}, {id:219, word:"spin", meaning:"회전"}, {id:220, word:"spread out", meaning:"펼치다"}, {id:221, word:"thousandth", meaning:"천분의 일"}, {id:222, word:"unbelievable", meaning:"믿기 어려운"}],
+"9": [{id:223, word:"adequate", meaning:"충분한"}, {id:224, word:"aspect", meaning:"측면"}, {id:225, word:"bacteria", meaning:"박테리아"}, {id:226, word:"bloodstream", meaning:"혈류"}, {id:227, word:"disease", meaning:"질병"}, {id:228, word:"entire", meaning:"전체의"}, {id:229, word:"gum", meaning:"잇몸"}, {id:230, word:"harm", meaning:"해로움"}, {id:231, word:"harmful", meaning:"해로운"}, {id:232, word:"lung", meaning:"폐"}, {id:233, word:"microorganism", meaning:"미생물"}, {id:234, word:"nearly", meaning:"거의"}, {id:235, word:"oral", meaning:"구강의"}, {id:236, word:"pose", meaning:"(문제 등을) 제기하다"}, {id:237, word:"prevent", meaning:"막다, 예방하다"}, {id:238, word:"reflection", meaning:"반영"}, {id:239, word:"risk", meaning:"위험"}, {id:240, word:"serious", meaning:"심각한"}, {id:241, word:"the tip of the iceberg", meaning:"빙산의 일각"}, {id:242, word:"virus", meaning:"바이러스"}],
+"10": [{id:243, word:"alternative", meaning:"대안"}, {id:244, word:"challenge", meaning:"도전, 난제"}, {id:245, word:"commit to", meaning:"~에 전념하다, 헌신하다"}, {id:246, word:"control", meaning:"통제, 지배"}, {id:247, word:"degree", meaning:"정도"}, {id:248, word:"desired", meaning:"바람직한, 원하는"}, {id:249, word:"dynamic", meaning:"역동적인"}, {id:250, word:"evident", meaning:"분명한"}, {id:251, word:"exercise", meaning:"행사하다, 발휘하다"}, {id:252, word:"for instance", meaning:"예를 들어"}, {id:253, word:"identity", meaning:"정체성"}, {id:254, word:"impose", meaning:"부과하다, 강요하다"}, {id:255, word:"mask", meaning:"가면"}, {id:256, word:"pose", meaning:"(문제 등을) 제기하다"}, {id:257, word:"prescribe", meaning:"규정하다, 지시하다"}, {id:258, word:"profession", meaning:"직업"}, {id:259, word:"ready-made", meaning:"기성품의, 이미 만들어진"}, {id:260, word:"realize", meaning:"실현하다"}, {id:261, word:"regarding", meaning:"~에 관하여"}, {id:262, word:"religion", meaning:"종교"}, {id:263, word:"role", meaning:"역할"}, {id:264, word:"social mobility", meaning:"사회적 유동성"}, {id:265, word:"traditional", meaning:"전통적인"}, {id:266, word:"underneath", meaning:"아래에"}],
+"11": [{id:267, word:"at worst", meaning:"최악의 경우"}, {id:268, word:"beneficial", meaning:"유익한"}, {id:269, word:"besides", meaning:"~외에도"}, {id:270, word:"bring up", meaning:"제시하다, 꺼내다"}, {id:271, word:"close off", meaning:"차단하다, 막다"}, {id:272, word:"consider", meaning:"고려하다"}, {id:273, word:"correct", meaning:"옳은, 맞는"}, {id:274, word:"creativity", meaning:"창의성"}, {id:275, word:"eliminate", meaning:"제거하다"}, {id:276, word:"experience", meaning:"경험하다"}, {id:277, word:"give a chance", meaning:"기회를 주다"}, {id:278, word:"immediately", meaning:"즉시"}, {id:279, word:"invention", meaning:"발명"}, {id:280, word:"it is the way it is", meaning:"그것은 원래 그렇다"}, {id:281, word:"look at life", meaning:"삶을 바라보다"}, {id:282, word:"opportunity", meaning:"기회"}, {id:283, word:"option", meaning:"선택(권)"}, {id:284, word:"particular", meaning:"특정한"}, {id:285, word:"period", meaning:"그것으로 끝이다"}, {id:286, word:"point of view", meaning:"관점"}, {id:287, word:"possibility", meaning:"가능성"}, {id:288, word:"see one's side", meaning:"~의 입장을 이해하다"}, {id:289, word:"suggestion", meaning:"제안"}, {id:290, word:"true with the facts", meaning:"사실과 부합하는"}, {id:291, word:"viewpoint", meaning:"관점"}],
+"12": [{id:292, word:"ancestor", meaning:"조상"}, {id:293, word:"at the same time", meaning:"동시에"}, {id:294, word:"attend to", meaning:"~에 주의를 기울이다"}, {id:295, word:"be designed to", meaning:"~하도록 설계되다"}, {id:296, word:"bored", meaning:"지루해하는"}, {id:297, word:"boredom", meaning:"지루함"}, {id:298, word:"bottom line", meaning:"핵심, 요점"}, {id:299, word:"cafeteria", meaning:"구내식당"}, {id:300, word:"enhance", meaning:"향상시키다"}, {id:301, word:"environment", meaning:"환경"}, {id:302, word:"equivalent", meaning:"동등한 것"}, {id:303, word:"evolve", meaning:"진화하다"}, {id:304, word:"excitation", meaning:"흥분, 활성화"}, {id:305, word:"excited", meaning:"활성화된"}, {id:306, word:"firefly", meaning:"반딧불이"}, {id:307, word:"get sick of", meaning:"싫증나다, 지겨워하다"}, {id:308, word:"hypothetical", meaning:"가상의, 가설의"}, {id:309, word:"in reaction to", meaning:"~에 대한 반응으로"}, {id:310, word:"initial", meaning:"초기의"}, {id:311, word:"lie buried", meaning:"묻혀있다"}, {id:312, word:"lose interest in", meaning:"흥미를 잃다"}, {id:313, word:"nerve cell", meaning:"신경 세포"}, {id:314, word:"neural", meaning:"신경의"}, {id:315, word:"neuron", meaning:"뉴런, 신경 세포"}, {id:316, word:"occur", meaning:"발생하다"}, {id:317, word:"puma", meaning:"퓨마"}, {id:318, word:"reduce", meaning:"줄이다"}, {id:319, word:"response", meaning:"반응"}, {id:320, word:"sooner or later", meaning:"조만간"}, {id:321, word:"stand out", meaning:"두드러지다"}, {id:322, word:"stimulus", meaning:"자극"}, {id:323, word:"survival value", meaning:"생존 가치"}, {id:324, word:"threat", meaning:"위협"}, {id:325, word:"tire of", meaning:"지겨워하다"}, {id:326, word:"turn down", meaning:"낮추다"}, {id:327, word:"unchanging", meaning:"변화 없는"}]
+};
+
+let currentChapter = "11";
+let words = [...dataByChapter[currentChapter]];
+let originalWords = [...dataByChapter[currentChapter]];
+let currentIndex = 0;
+let isMeaningVisible = false;
+
+const chapterList = document.getElementById('chapterList');
+Object.keys(dataByChapter).forEach(ch => {
+const btn = document.createElement('button');
+btn.className = 'chapter-btn' + (ch === currentChapter ? ' active' : '');
+btn.innerText = ch;
+btn.onclick = () => selectChapter(ch);
+chapterList.appendChild(btn);
+});
+
+function selectChapter(ch) {
+currentChapter = ch;
+words = [...dataByChapter[ch]];
+originalWords = [...dataByChapter[ch]];
+currentIndex = 0;
+updateDisplay();
+document.querySelectorAll('.chapter-btn').forEach(b => b.classList.toggle('active', b.innerText === ch));
+}
+
+function updateDisplay() {
+document.getElementById('word').innerText = words[currentIndex].word;
+document.getElementById('word-number').innerText = words[currentIndex].id;
+document.getElementById('meaning').innerText = words[currentIndex].meaning;
+document.getElementById('meaning').style.color = 'transparent';
+isMeaningVisible = false;
+}
+
+function nextStep() {
+if (!isMeaningVisible) {
+document.getElementById('meaning').style.color = '#495057';
+isMeaningVisible = true;
+} else {
+currentIndex = (currentIndex + 1) % words.length;
+updateDisplay();
+}
+}
+
+function prevWord() {
+currentIndex = (currentIndex - 1 + words.length) % words.length;
+updateDisplay();
+}
+
+function shuffleWords() {
+words.sort(() => Math.random() - 0.5);
+currentIndex = 0;
+updateDisplay();
+}
+
+function setOrder() {
+words = [...originalWords];
+currentIndex = 0;
+updateDisplay();
+}
+
+updateDisplay();
+</script>
+</body>
+</html>
