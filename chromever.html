@@ -9,8 +9,8 @@
 body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; background-color: #f8f9fa; margin: 0; padding: 20px; overflow: hidden; /* 중앙 정렬 집중을 위해 스크롤 바 숨김 */ }
 
 /* 지문 버튼 고정 영역 */
-.chapter-container { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; max-width: 5000px; width: 100%; position: fixed; top: 50px; background: #f8f9fa; padding: 10px 0; z-index: 10; }
-.chapter-btn { padding: 8px 10px; font-size: 13px; border: none; border-radius: 8px; background: rgba(10, 10, 256, 0.2); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.chapter-container { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-bottom: 20px; max-width: 300px; width: 100%; position: fixed; top: 25px; background: #f8f9fa; padding: 10px 0; z-index: 10; }
+.chapter-btn { padding: 10px 14px; font-size: 13px; border: none; border-radius: 40px; background: rgba(10, 10, 256, 0.2); cursor: pointer; box-shadow: 0 5px 8px rgba(0,0,0,0.1); }
 .chapter-btn.active { background: #4dabf7; color: white; }
 
 /* 단어와 뜻 칸을 화면 전체의 정중앙에 배치 */
@@ -18,18 +18,18 @@ body { font-family: -apple-system, sans-serif; display: flex; flex-direction: co
   width: 100%; 
   max-width: 400px; 
   position: fixed;
-  top: 50%;
+  top: 59%;
   left: 50%;
   transform: translate(-50%, -50%); /* 가로, 세로 완벽한 화면 중앙 정렬 */
-  padding: 0 20px;
+  padding: 0 0px;
 }
-.box { background: white; padding: 30px 20px 20px 20px; margin-bottom: 15px; text-align: center; border-radius: 20px; min-height: 110px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative; }
+.box { background: white; padding: 2px0px 20px 20px 20px; margin-bottom: 15px; text-align: center; border-radius: 30px; min-height: 175px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative; }
 .box:last-child { margin-bottom: 0; } /* 마지막 박스 하단 여백 제거 */
 
 /* 번호 표시 스타일 */
 #word-number { position: absolute; top: 10px; left: 15px; font-size: 12px; color: #adb5bd; font-weight: bold; }
-#word { font-size: 24px; font-weight: 600; }
-#meaning { font-size: 20px; font-weight: 500; color: transparent; }
+#word { font-size: 35px; font-weight: 600; }
+#meaning { font-size: 30px; font-weight: 500; color: transparent; }
 
 /* 공통 버튼 기본 스타일 */
 button { border: none; cursor: pointer; color: white; font-weight: 600; }
